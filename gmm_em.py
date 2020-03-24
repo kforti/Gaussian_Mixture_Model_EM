@@ -108,12 +108,6 @@ class GaussianMMEM:
 
         for dim in range(self.num_clusters):
             np.fill_diagonal(self.sigma[dim], 5)
-        # tot = 0
-        # for dim in range(len(self.sigma)):
-        #     index = int(len(self.points) / self.num_clusters)
-        #     cov = np.cov(np.sort(self.points)[tot:index + tot].T)
-        #     self.sigma[dim] = cov
-        #     tot += index
 
         if display:
             self.display_state("Initial State")
