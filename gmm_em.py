@@ -40,14 +40,15 @@ class GaussianMMEM:
         self.initialize_gaussians(display_initial)
 
         for i in range(self.iterations):
-            probabilities = self.expectation()
+            probabilities, likelihood = self.expectation()
 
             self.maximization(probabilities)
+            #
+            if i > 0:
+                self.log_likelihoods.append(likelihood)
 
-            log_likelihood = self.calc_log_likelihood()
-            self.log_likelihoods.append(log_likelihood)
-            print(log_likelihood)
-
+        probabilities, likelihood = self.expectation()
+        self.log_likelihoods.append(likelihood)
         self.display_log_likelihoods()
         self.display_state("Final State")
 
@@ -59,11 +60,16 @@ class GaussianMMEM:
         fig.show()
 
     def calc_log_likelihood(self):
-        likelihoods = []
+        gaussians = []
         for i, pi in enumerate(self.pi):
-            likelihoods.append(pi * multivariate_normal(self.mu[i], self.sigma[i]).pdf(self.points))
-
-        return np.log(np.sum(likelihoods))
+            gaussians.append(multivariate_normal(self.mu[i], self.sigma[i]))
+        tot = 0
+        for p in self.points:
+            ptot = 0
+            for pi, gauss in zip(self.pi, gaussians):
+                ptot += pi * gauss.pdf(p)
+            tot = np.log(ptot)
+        return tot
 
     def expectation(self):
         r_ic = np.zeros((len(self.points), self.num_clusters))
@@ -77,11 +83,16 @@ class GaussianMMEM:
             total_probs += probs
             r_ic[:, c] = probs
 
+        # log likelihood
+        cprobs = np.sum(r_ic, axis=1)
+        p = np.log(cprobs[:])
+        likelihood = np.sum(p)
+
         # Normalize
         for c in range(self.num_clusters):
             r_ic[:, c] = r_ic[:, c] / total_probs
 
-        return r_ic
+        return r_ic, likelihood
 
     def maximization(self, r_ic):
         # compute gaussian parameters
